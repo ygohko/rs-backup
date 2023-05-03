@@ -1,6 +1,8 @@
+use std::cmp::Ordering;
 use std::collections::VecDeque;
 use std::env;
 use std::fs;
+use std::time::SystemTime;
 use std::path::Path;
 use std::path::PathBuf;
 
@@ -26,26 +28,26 @@ fn execute(source_path: String, destination_path: String) -> std::io::Result<()>
             entries_queue.push_back(a_entries);
         }
 
-	let mut directory_path_buf = PathBuf::new();
-	directory_path_buf.push(destination_path.clone());
-	directory_path_buf.push(entries.path);
-	if !directory_path_buf.as_path().exists() {
+        let mut directory_path_buf = PathBuf::new();
+        directory_path_buf.push(destination_path.clone());
+        directory_path_buf.push(entries.path);
+        if !directory_path_buf.as_path().exists() {
 
-	    println!("path: {}", directory_path_buf.to_str().unwrap());
+            // println!("path: {}", directory_path_buf.to_str().unwrap());
 
-	    std::fs::create_dir_all(directory_path_buf.as_path())?;
+            std::fs::create_dir_all(directory_path_buf.as_path())?;
         }
 
         for file_path in entries.file_paths {
-	    let mut file_destination_path_buf = PathBuf::new();
-	    file_destination_path_buf.push(destination_path.clone());
-	    file_destination_path_buf.push(file_path.clone());
+            let mut file_destination_path_buf = PathBuf::new();
+            file_destination_path_buf.push(destination_path.clone());
+            file_destination_path_buf.push(file_path.clone());
 
-            println!("Copying from {} to {}...", file_path.clone(), file_destination_path_buf.to_str().unwrap().to_string());
+            // println!("Copying from {} to {}...", file_path.clone(), file_destination_path_buf.to_str().unwrap().to_string());
 
-	    copy(file_path, file_destination_path_buf.to_str().unwrap().to_string())?;
+            copy(file_path, file_destination_path_buf.to_str().unwrap().to_string())?;
 
-	}
+        }
 
         if entries_queue.len() <= 0 {
             done = true;
@@ -56,22 +58,28 @@ fn execute(source_path: String, destination_path: String) -> std::io::Result<()>
 }
 
 fn copy(source_path: String, destination_path: String) -> std::io::Result<()> {
-    std::fs::copy(Path::new(&source_path), Path::new(&destination_path))?;
+    let mut needed = true;
+    if Path::new(&destination_path).exists() {
+	let source_metadata = Path::new(&source_path).metadata()?;
+	let source_modified = source_metadata.modified()?;
+	let destination_metadata = Path::new(&destination_path).metadata()?;
+	let destination_modified = destination_metadata.modified()?;
+
+	let result = source_modified.duration_since(SystemTime::UNIX_EPOCH);
+	let source_secs = result.ok().unwrap().as_secs();
+	let result = destination_modified.duration_since(SystemTime::UNIX_EPOCH);
+	let destination_secs = result.ok().unwrap().as_secs();
+	println!("source: {}, destination: {}", source_secs, destination_secs);
+
+	if source_modified.cmp(&destination_modified) != Ordering::Greater {
+	    needed = false;
+	}
+    }
+    if needed {
+	std::fs::copy(Path::new(&source_path), Path::new(&destination_path))?;
+    }
 
     return Ok(());
-}
-
-fn get_paths(path: &str) -> Result<Vec<String>, std::io::Error> {
-    let mut paths: Vec<String> = vec![];
-    for entry in fs::read_dir(path)? {
-        let dir = entry?;
-        let path = dir.path();
-        let result = path.into_os_string().into_string();
-        if result.is_ok() {
-            paths.push(result.ok().unwrap());
-        }
-    }
-    Ok(paths)
 }
 
 fn get_directory_entries(path: String) -> Result<DirectoryEntries, std::io::Error> {
@@ -98,36 +106,6 @@ fn get_directory_entries(path: String) -> Result<DirectoryEntries, std::io::Erro
 }
 
 fn main() -> std::io::Result<()> {
-    /*
-    println!("Hello, world!");
-
-    let args:Vec<String> = env::args().collect();
-    let count = args.len();
-    println!("count: {}", count);
-    for i in 0..count {
-        println!("arg: {}", args[i]);
-    }
-
-    for entry in fs::read_dir(".")? {
-        let dir = entry?;
-        let path = dir.path();
-        println!("path: {}", path.display());
-    }
-
-    let paths = get_paths(".")?;
-    for path in paths {
-        println!("path: {}", path);
-    }
-
-    let entries = get_directory_entries(".".to_string())?;
-    for file_path in entries.file_paths {
-        println!("file_path: {}", file_path);
-    }
-    for directory_path in entries.directory_paths {
-    println!("directory_path: {}", directory_path);
-    }
-     */
-
     let args: Vec<String> = env::args().collect();
     if args.len() < 3 {
         println!("USAGE: rs-backup SOURCE DESTINATION");
