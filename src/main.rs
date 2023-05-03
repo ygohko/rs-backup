@@ -6,6 +6,8 @@ use std::time::SystemTime;
 use std::path::Path;
 use std::path::PathBuf;
 
+use filetime::{set_file_mtime, FileTime};
+
 struct DirectoryEntries {
     path: String,
     file_paths: Vec<String>,
@@ -69,14 +71,19 @@ fn copy(source_path: String, destination_path: String) -> std::io::Result<()> {
 	let source_secs = result.ok().unwrap().as_secs();
 	let result = destination_modified.duration_since(SystemTime::UNIX_EPOCH);
 	let destination_secs = result.ok().unwrap().as_secs();
-	println!("source: {}, destination: {}", source_secs, destination_secs);
+	// println!("source: {}, destination: {}", source_secs, destination_secs);
 
 	if source_modified.cmp(&destination_modified) != Ordering::Greater {
 	    needed = false;
 	}
     }
     if needed {
+
+	// println!("Copying...");
+
 	std::fs::copy(Path::new(&source_path), Path::new(&destination_path))?;
+	let source_metadata = Path::new(&source_path).metadata()?;
+	set_file_mtime(destination_path, FileTime::from_last_modification_time(&source_metadata))?;
     }
 
     return Ok(());
