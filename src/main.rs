@@ -1,3 +1,4 @@
+use std::collections::VecDeque;
 use std::env;
 use std::fs;
 // use std::path::Path;
@@ -42,7 +43,36 @@ fn get_directory_entries(path: String) -> Result<DirectoryEntries, std::io::Erro
     Ok(entries)
 }
 
+fn execute(source_path: String, destination_path: String) -> std::io::Result<()> {
+    let mut entries_queue: VecDeque<DirectoryEntries> = VecDeque::new();
+    let result = get_directory_entries(source_path);
+    if result.is_ok() {
+        entries_queue.push_back(result.ok().unwrap());
+    }
+
+    let mut done = false;
+    while !done {
+        let entries = entries_queue.pop_front().unwrap();
+
+	for directory_path in entries.directory_paths {
+            let a_entries = get_directory_entries(directory_path)?;
+            entries_queue.push_back(a_entries);
+        }
+
+        for file_path in entries.file_paths {
+            println!("Processing a file: {}", file_path);
+        }
+
+        if entries_queue.len() <= 0 {
+            done = true;
+        }
+    }
+
+    Ok(())
+}
+
 fn main() -> std::io::Result<()> {
+    /*
     println!("Hello, world!");
 
     let args:Vec<String> = env::args().collect();
@@ -68,8 +98,17 @@ fn main() -> std::io::Result<()> {
         println!("file_path: {}", file_path);
     }
     for directory_path in entries.directory_paths {
-        println!("directory_path: {}", directory_path);
+    println!("directory_path: {}", directory_path);
     }
+     */
 
-    Ok(())
+    let args: Vec<String> = env::args().collect();
+    if args.len() < 3 {
+	println!("USAGE: rs-backup SOURCE DESTINATION");
+
+	return Ok(());
+    }
+    execute(args[1].clone(), args[2].clone())?;
+
+    return Ok(());
 }
