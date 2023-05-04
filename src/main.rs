@@ -49,20 +49,20 @@ impl BackUpExecuter {
 
     fn execute(&mut self, source_path: &String, destination_path: &String) -> std::io::Result<()> {
 
-	self.initialize(source_path, destination_path);
+        self.initialize(source_path, destination_path);
 
-	// TODO: Count same characters in paths
-	/*
-	let mut done = false;
-	let index = 0;
-	while !done {
-	    if source_path[index] != destination_path[index] {
-		done = true;
-	    }
-	}
-	*/
+        // TODO: Count same characters in paths
+        /*
+        let mut done = false;
+        let index = 0;
+        while !done {
+            if source_path[index] != destination_path[index] {
+                done = true;
+            }
+        }
+        */
 
-	let mut entries_queue: VecDeque<DirectoryEntries> = VecDeque::new();
+        let mut entries_queue: VecDeque<DirectoryEntries> = VecDeque::new();
         let result = Self::get_directory_entries(source_path);
         if result.is_ok() {
             entries_queue.push_back(result.ok().unwrap());
@@ -93,7 +93,7 @@ impl BackUpExecuter {
                 for a_file_path in destination_entries.file_paths {
                     let mut path = a_file_path.clone();
                     path.replace_range(0..destination_path.len() + 1, "");
-		    path = self.get_common_added_path(&path);
+                    path = self.get_common_added_path(&path);
                     let mut found = false;
                     for b_file_path in entries.file_paths.clone() {
                         if b_file_path == path {
@@ -147,7 +147,7 @@ impl BackUpExecuter {
             }
         }
 
-	common_len -= 1;
+        common_len -= 1;
         self.common_path = source_path.to_string();
         self.common_path.replace_range(common_len.., "");
 
