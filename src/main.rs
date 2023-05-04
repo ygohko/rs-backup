@@ -18,7 +18,11 @@ struct BackUpExecuter {
 }
 
 impl BackUpExecuter {
-    fn execute(&self, source_path: String, destination_path: String) -> std::io::Result<()> {
+    fn new () ->Self {
+        return BackUpExecuter {};
+    }
+
+    fn execute(&self, source_path: &String, destination_path: &String) -> std::io::Result<()> {
         let mut entries_queue: VecDeque<DirectoryEntries> = VecDeque::new();
         let result = Self::get_directory_entries(source_path);
         if result.is_ok() {
@@ -30,7 +34,7 @@ impl BackUpExecuter {
             let entries = entries_queue.pop_front().unwrap();
 
             for directory_path in entries.directory_paths {
-                let a_entries = Self::get_directory_entries(directory_path)?;
+                let a_entries = Self::get_directory_entries(&directory_path)?;
                 entries_queue.push_back(a_entries);
             }
 
@@ -46,7 +50,7 @@ impl BackUpExecuter {
             }
             else {
                 // Remove files that is not in the source directory
-                let destination_entries = Self::get_directory_entries(directory_path_buf.to_str().unwrap().to_string())?;
+                let destination_entries = Self::get_directory_entries(&directory_path_buf.to_str().unwrap().to_string())?;
                 for a_file_path in destination_entries.file_paths {
                     let mut path = a_file_path.clone();
                     path.replace_range(0..destination_path.len() + 1, "");
@@ -75,7 +79,7 @@ impl BackUpExecuter {
 
                 println!("Copying from {} to {}...", file_path.clone(), file_destination_path_buf.to_str().unwrap().to_string());
 
-                Self::copy(file_path, file_destination_path_buf.to_str().unwrap().to_string())?;
+                Self::copy(&file_path, &file_destination_path_buf.to_str().unwrap().to_string())?;
 
             }
 
@@ -87,7 +91,7 @@ impl BackUpExecuter {
         return Ok(());
     }
 
-    fn copy(source_path: String, destination_path: String) -> std::io::Result<()> {
+    fn copy(source_path: &String, destination_path: &String) -> std::io::Result<()> {
         let mut needed = true;
         if Path::new(&destination_path).exists() {
             let source_metadata = Path::new(&source_path).metadata()?;
@@ -124,7 +128,7 @@ impl BackUpExecuter {
         return Ok(());
     }
 
-    fn get_directory_entries(path: String) -> Result<DirectoryEntries, std::io::Error> {
+    fn get_directory_entries(path: &String) -> Result<DirectoryEntries, std::io::Error> {
         let mut entries = DirectoryEntries {
             path: path.clone(),
             file_paths: vec![],
@@ -156,8 +160,8 @@ fn main() -> std::io::Result<()> {
 
         return Ok(());
     }
-    let executer = BackUpExecuter {};
-    executer.execute(args[1].clone(), args[2].clone())?;
+    let executer = BackUpExecuter::new();
+    executer.execute(&args[1], &args[2])?;
 
     return Ok(());
 }
