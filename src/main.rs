@@ -15,15 +15,32 @@ struct DirectoryEntries {
 }
 
 struct BackUpExecuter {
+    common_path: String,
 }
 
 impl BackUpExecuter {
     fn new () ->Self {
-        return BackUpExecuter {};
+        return BackUpExecuter {
+	    common_path: String::from(""),
+	};
     }
 
-    fn execute(&self, source_path: &String, destination_path: &String) -> std::io::Result<()> {
-        let mut entries_queue: VecDeque<DirectoryEntries> = VecDeque::new();
+    fn execute(&mut self, source_path: &String, destination_path: &String) -> std::io::Result<()> {
+
+	self.initialize(source_path, destination_path);
+
+	// TODO: Count same characters in paths
+	/*
+	let mut done = false;
+	let index = 0;
+	while !done {
+	    if source_path[index] != destination_path[index] {
+		done = true;
+	    }
+	}
+	*/
+
+	let mut entries_queue: VecDeque<DirectoryEntries> = VecDeque::new();
         let result = Self::get_directory_entries(source_path);
         if result.is_ok() {
             entries_queue.push_back(result.ok().unwrap());
@@ -64,7 +81,7 @@ impl BackUpExecuter {
 
                     if !found {
 
-                        println!("Removing...");
+                        // println!("Removing...");
 
                         std::fs::remove_file(Path::new(&a_file_path))?;
                     }
@@ -77,7 +94,7 @@ impl BackUpExecuter {
                 file_destination_path_buf.push(destination_path.clone());
                 file_destination_path_buf.push(file_path.clone());
 
-                println!("Copying from {} to {}...", file_path.clone(), file_destination_path_buf.to_str().unwrap().to_string());
+                // println!("Copying from {} to {}...", file_path.clone(), file_destination_path_buf.to_str().unwrap().to_string());
 
                 Self::copy(&file_path, &file_destination_path_buf.to_str().unwrap().to_string())?;
 
@@ -89,6 +106,29 @@ impl BackUpExecuter {
         }
 
         return Ok(());
+    }
+
+    fn initialize(&mut self, source_path: &String, destination_path: &String) {
+	let mut maximum_len = source_path.len();
+	let destination_len = destination_path.len();
+	if destination_len < maximum_len {
+	    maximum_len = destination_len;
+	}
+	let mut common_len = 0;
+	for i in 0..maximum_len {
+	    if source_path.chars().nth(i) != destination_path.chars().nth(i) {
+		break;
+	    }
+	    else {
+		common_len += 1;
+	    }
+	}
+
+	self.common_path = source_path.to_string();
+	self.common_path.replace_range(common_len.., "");
+
+	println!("self.common_path: {}", self.common_path);
+
     }
 
     fn copy(source_path: &String, destination_path: &String) -> std::io::Result<()> {
@@ -113,7 +153,7 @@ impl BackUpExecuter {
         }
         if needed {
 
-            println!("Copying...");
+            // println!("Copying...");
 
             std::fs::copy(Path::new(&source_path), Path::new(&destination_path))?;
             let source_metadata = Path::new(&source_path).metadata()?;
@@ -121,7 +161,7 @@ impl BackUpExecuter {
         }
         else {
 
-            println!("Skipping...");
+            // println!("Skipping...");
 
         }
 
@@ -160,7 +200,7 @@ fn main() -> std::io::Result<()> {
 
         return Ok(());
     }
-    let executer = BackUpExecuter::new();
+    let mut executer = BackUpExecuter::new();
     executer.execute(&args[1], &args[2])?;
 
     return Ok(());
