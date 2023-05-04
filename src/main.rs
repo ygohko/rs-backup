@@ -21,8 +21,8 @@ struct BackUpExecuter {
 impl BackUpExecuter {
     fn new () ->Self {
         return BackUpExecuter {
-	    common_path: String::from(""),
-	};
+            common_path: String::from(""),
+        };
     }
 
     fn execute(&mut self, source_path: &String, destination_path: &String) -> std::io::Result<()> {
@@ -57,7 +57,7 @@ impl BackUpExecuter {
 
             let mut directory_path_buf = PathBuf::new();
             directory_path_buf.push(destination_path.clone());
-            directory_path_buf.push(entries.path);
+            directory_path_buf.push(self.get_common_removed_path(&entries.path));
             if !directory_path_buf.as_path().exists() {
                 // Create destination directory
 
@@ -71,6 +71,7 @@ impl BackUpExecuter {
                 for a_file_path in destination_entries.file_paths {
                     let mut path = a_file_path.clone();
                     path.replace_range(0..destination_path.len() + 1, "");
+		    path = self.get_common_added_path(&path);
                     let mut found = false;
                     for b_file_path in entries.file_paths.clone() {
                         if b_file_path == path {
@@ -81,7 +82,7 @@ impl BackUpExecuter {
 
                     if !found {
 
-                        // println!("Removing...");
+                        println!("Removing: {}", a_file_path);
 
                         std::fs::remove_file(Path::new(&a_file_path))?;
                     }
@@ -92,9 +93,9 @@ impl BackUpExecuter {
                 // Copy the file
                 let mut file_destination_path_buf = PathBuf::new();
                 file_destination_path_buf.push(destination_path.clone());
-                file_destination_path_buf.push(file_path.clone());
+                file_destination_path_buf.push(self.get_common_removed_path(&file_path.clone()));
 
-                // println!("Copying from {} to {}...", file_path.clone(), file_destination_path_buf.to_str().unwrap().to_string());
+                println!("Copying from {} to {}...", file_path, file_destination_path_buf.to_str().unwrap().to_string());
 
                 Self::copy(&file_path, &file_destination_path_buf.to_str().unwrap().to_string())?;
 
@@ -109,26 +110,43 @@ impl BackUpExecuter {
     }
 
     fn initialize(&mut self, source_path: &String, destination_path: &String) {
-	let mut maximum_len = source_path.len();
-	let destination_len = destination_path.len();
-	if destination_len < maximum_len {
-	    maximum_len = destination_len;
-	}
-	let mut common_len = 0;
-	for i in 0..maximum_len {
-	    if source_path.chars().nth(i) != destination_path.chars().nth(i) {
-		break;
-	    }
-	    else {
-		common_len += 1;
-	    }
-	}
+        let mut maximum_len = source_path.len();
+        let destination_len = destination_path.len();
+        if destination_len < maximum_len {
+            maximum_len = destination_len;
+        }
+        let mut common_len = 0;
+        for i in 0..maximum_len {
+            if source_path.chars().nth(i) != destination_path.chars().nth(i) {
+                break;
+            }
+            else {
+                common_len += 1;
+            }
+        }
 
-	self.common_path = source_path.to_string();
-	self.common_path.replace_range(common_len.., "");
+	common_len -= 1;
+        self.common_path = source_path.to_string();
+        self.common_path.replace_range(common_len.., "");
 
-	println!("self.common_path: {}", self.common_path);
+        println!("self.common_path: {}", self.common_path);
 
+    }
+
+    fn get_common_added_path(&self, path: &String) -> String {
+        let mut path_buf = PathBuf::new();
+        path_buf.push(self.common_path.clone());
+        path_buf.push(path);
+        let result = path_buf.to_str().unwrap().to_string();
+
+        return result;
+    }
+
+    fn get_common_removed_path(&self, path: &String) -> String {
+        let mut result = path.clone();
+        result.replace_range(0..self.common_path.len() + 1, "");
+
+        return result;
     }
 
     fn copy(source_path: &String, destination_path: &String) -> std::io::Result<()> {
@@ -153,7 +171,7 @@ impl BackUpExecuter {
         }
         if needed {
 
-            // println!("Copying...");
+            println!("Copying...");
 
             std::fs::copy(Path::new(&source_path), Path::new(&destination_path))?;
             let source_metadata = Path::new(&source_path).metadata()?;
@@ -161,7 +179,7 @@ impl BackUpExecuter {
         }
         else {
 
-            // println!("Skipping...");
+            println!("Skipping...");
 
         }
 
