@@ -41,26 +41,14 @@ struct BackUpExecuter {
 }
 
 impl BackUpExecuter {
-    fn new () ->Self {
+    fn new () -> Self {
         return BackUpExecuter {
             common_path: String::from(""),
         };
     }
 
     fn execute(&mut self, source_path: &String, destination_path: &String) -> std::io::Result<()> {
-
         self.initialize(source_path, destination_path);
-
-        // TODO: Count same characters in paths
-        /*
-        let mut done = false;
-        let index = 0;
-        while !done {
-            if source_path[index] != destination_path[index] {
-                done = true;
-            }
-        }
-        */
 
         let mut entries_queue: VecDeque<DirectoryEntries> = VecDeque::new();
         let result = Self::get_directory_entries(source_path);
@@ -104,7 +92,7 @@ impl BackUpExecuter {
 
                     if !found {
 
-                        println!("Removing: {}", a_file_path);
+                        println!("Removing a file: {}", a_file_path);
 
                         std::fs::remove_file(Path::new(&a_file_path))?;
                     }
@@ -147,7 +135,9 @@ impl BackUpExecuter {
             }
         }
 
-        common_len -= 1;
+        if common_len > 0 {
+            common_len -= 1;
+        }
         self.common_path = source_path.to_string();
         self.common_path.replace_range(common_len.., "");
 
